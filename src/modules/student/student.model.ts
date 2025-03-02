@@ -1,5 +1,5 @@
 import { model, Schema } from 'mongoose';
-import bcrypt from 'bcrypt';
+
 import {
   StudentModel,
   TGuardian,
@@ -8,7 +8,6 @@ import {
   TUserName,
 } from './student.interface';
 import validator from 'validator';
-import config from '../../app/config';
 
 const userNameSchema = new Schema<TUserName>({
   firstName: {
@@ -85,10 +84,11 @@ const studentSchema = new Schema<TStudent, StudentModel>({
     required: [true, 'ID is Required'],
     unique: true,
   },
-  password: {
-    type: String,
-    required: [true, 'ID is Required'],
-    maxlength: [12, 'Password Should 12 Character'],
+  user: {
+    type: Schema.Types.ObjectId,
+    required: [true, 'User ID is Required'],
+    unique: true,
+    ref: 'User',
   },
   name: {
     type: userNameSchema,
@@ -118,13 +118,13 @@ const studentSchema = new Schema<TStudent, StudentModel>({
       message: '{VALUE is not of Email Formate}',
     },
   },
-  phone: {
+  contactNo: {
     type: String,
     required: [true, 'Phone is Required'],
     maxlength: [11, 'Maximum Allowed 11 Character'],
     minlength: [11, 'Minimum Allowed 11 Character'],
   },
-  emergencyPhone: {
+  emergencyContactNo: {
     type: String,
     required: [true, 'Emergency Phone is Required'],
     maxlength: [11, 'Maximum Allowed 11 Character'],
@@ -155,31 +155,26 @@ const studentSchema = new Schema<TStudent, StudentModel>({
   },
   profileImg: {
     type: String,
-    required: [true, 'Profile Img is Required'],
+    default: '',
   },
-  isActive: {
-    type: String,
-    enum: {
-      values: ['Active', 'Inactive'],
-      message: '{VALUE} is not Valid',
-    },
-    required: [true, 'isActive is Required'],
+  admissionSemester: {
+    type: Schema.Types.ObjectId,
+    ref: 'AcademicSemester',
   },
-  isDeleted: { type: Boolean, default: false },
+  academicDepartment: {
+    type: Schema.Types.ObjectId,
+    ref: 'AcademicDepartment',
+  },
+  academicFaculty: {
+    type: Schema.Types.ObjectId,
+    ref: 'AcademicFaculty',
+  },
+  isDeleted: {
+    type: Boolean,
+    default: false,
+  },
 });
 
-studentSchema.pre('save', async function (next) {
-  const user = this;
-  user.password = await bcrypt.hash(
-    user.password,
-    Number(config.bcrypt_salt_rounds),
-  );
-  next();
-});
-studentSchema.post('save', function (doc, next) {
-  doc.password = '';
-  next();
-});
 studentSchema.pre('find', function (next) {
   this.find({ isDeleted: { $ne: true } });
   next();
